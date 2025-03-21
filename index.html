@@ -3,102 +3,362 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mobile Camera Access</title>
+    <title>QR Code Scanner</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             text-align: center;
+            background-color: #f8f9fa;
+            color: #333;
         }
-        #videoElement {
+        
+        h1 {
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+        
+        #video-container {
+            position: relative;
             width: 100%;
-            max-width: 400px;
-            background-color: #f0f0f0;
-            border: 1px solid #ccc;
+            max-width: 500px;
+            margin: 0 auto 20px;
+            overflow: hidden;
             border-radius: 8px;
-            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+        
+        #qr-video {
+            width: 100%;
+            background-color: #000;
+        }
+        
+        #qr-canvas {
+            display: none;
+        }
+        
+        #scan-region {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 2px solid #4CAF50;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+        
+        #result {
+            margin: 20px auto;
+            padding: 15px;
+            background-color: #fff;
+            border-radius: 8px;
+            max-width: 500px;
+            word-break: break-all;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
         button {
-            background-color: #4285f4;
+            background-color: #4CAF50;
             color: white;
             border: none;
-            padding: 10px 20px;
+            padding: 12px 24px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
             font-size: 16px;
-            border-radius: 5px;
+            margin: 10px 5px;
             cursor: pointer;
-            margin: 10px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
         }
+        
         button:hover {
-            background-color: #3367d6;
+            background-color: #45a049;
         }
-        .status {
-            margin: 10px 0;
-            color: #555;
+        
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .result-container {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .result-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .result-content {
+            background-color: #f1f1f1;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .visible {
+            display: block;
+        }
+        
+        a {
+            color: #2980b9;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        #history {
+            margin-top: 30px;
+            text-align: left;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        #history-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        #history-list li {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        #history-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .timestamp {
+            color: #777;
+            font-size: 0.8em;
+            margin-left: 10px;
         }
     </style>
 </head>
 <body>
-    <h1>Mobile Camera Access</h1>
-    <p class="status" id="status">Click the button below to start the camera</p>
+    <h1>QR Code Scanner</h1>
     
-    <div>
-        <button id="startButton">Start Camera</button>
-        <button id="captureButton" disabled>Take Photo</button>
+    <div id="video-container">
+        <video id="qr-video" playsinline></video>
+        <div id="scan-region"></div>
     </div>
     
-    <video id="videoElement" autoplay playsinline></video>
+    <canvas id="qr-canvas"></canvas>
     
-    <canvas id="canvas" style="display:none;"></canvas>
     <div>
-        <img id="capturedImage" style="display:none; max-width:100%; margin-top:20px; border-radius:8px;">
+        <button id="start-button">Start Scanner</button>
+        <button id="stop-button" disabled>Stop Scanner</button>
     </div>
-
+    
+    <div id="result" class="hidden">
+        <div class="result-title">Scan Result:</div>
+        <div id="result-content" class="result-content"></div>
+        <div id="result-type" style="margin-top: 10px; font-size: 0.9em; color: #666;"></div>
+        <div style="margin-top: 15px;">
+            <button id="copy-button">Copy to Clipboard</button>
+            <button id="open-link-button" class="hidden">Open Link</button>
+        </div>
+    </div>
+    
+    <div id="history" class="hidden">
+        <h2>Scan History</h2>
+        <ul id="history-list"></ul>
+        <button id="clear-history">Clear History</button>
+    </div>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
     <script>
-        const videoElement = document.getElementById('videoElement');
-        const startButton = document.getElementById('startButton');
-        const captureButton = document.getElementById('captureButton');
-        const canvas = document.getElementById('canvas');
-        const capturedImage = document.getElementById('capturedImage');
-        const statusElement = document.getElementById('status');
-        let stream = null;
-
-        startButton.addEventListener('click', async () => {
-            try {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' },
-                    audio: false
-                });
-                videoElement.srcObject = stream;
-                startButton.disabled = true;
-                captureButton.disabled = false;
-                statusElement.textContent = 'Camera is running';
-            } catch (err) {
-                statusElement.textContent = 'Error accessing camera: ' + err.message;
-                console.error('Error accessing camera:', err);
+        document.addEventListener('DOMContentLoaded', function() {
+            const video = document.getElementById('qr-video');
+            const canvas = document.getElementById('qr-canvas');
+            const ctx = canvas.getContext('2d');
+            const resultDiv = document.getElementById('result');
+            const resultContent = document.getElementById('result-content');
+            const resultType = document.getElementById('result-type');
+            const startButton = document.getElementById('start-button');
+            const stopButton = document.getElementById('stop-button');
+            const copyButton = document.getElementById('copy-button');
+            const openLinkButton = document.getElementById('open-link-button');
+            const historyDiv = document.getElementById('history');
+            const historyList = document.getElementById('history-list');
+            const clearHistoryButton = document.getElementById('clear-history');
+            
+            let scanning = false;
+            let stream = null;
+            
+            // Load scan history from localStorage
+            const scanHistory = JSON.parse(localStorage.getItem('qrScanHistory') || '[]');
+            if (scanHistory.length > 0) {
+                updateHistoryDisplay();
+                historyDiv.classList.remove('hidden');
             }
-        });
-
-        captureButton.addEventListener('click', () => {
-            if (stream) {
-                canvas.width = videoElement.videoWidth;
-                canvas.height = videoElement.videoHeight;
+            
+            startButton.addEventListener('click', startScanner);
+            stopButton.addEventListener('click', stopScanner);
+            copyButton.addEventListener('click', copyToClipboard);
+            openLinkButton.addEventListener('click', openLink);
+            clearHistoryButton.addEventListener('click', clearHistory);
+            
+            function startScanner() {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            facingMode: 'environment',
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 } 
+                        } 
+                    })
+                    .then(function(mediaStream) {
+                        stream = mediaStream;
+                        video.srcObject = mediaStream;
+                        video.setAttribute('playsinline', true);
+                        video.play();
+                        requestAnimationFrame(tick);
+                        scanning = true;
+                        startButton.disabled = true;
+                        stopButton.disabled = false;
+                    })
+                    .catch(function(error) {
+                        console.error('Error accessing camera:', error);
+                        alert('Could not access the camera. Please make sure you have granted camera permissions.');
+                    });
+                } else {
+                    alert('Sorry, your browser does not support camera access.');
+                }
+            }
+            
+            function stopScanner() {
+                if (stream) {
+                    stream.getTracks().forEach(track => {
+                        track.stop();
+                    });
+                    video.srcObject = null;
+                    scanning = false;
+                    startButton.disabled = false;
+                    stopButton.disabled = true;
+                }
+            }
+            
+            function tick() {
+                if (!scanning) return;
                 
-                // Draw the current video frame to the canvas
-                const context = canvas.getContext('2d');
-                context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+                if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                    canvas.height = video.videoHeight;
+                    canvas.width = video.videoWidth;
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: "dontInvert",
+                    });
+                    
+                    if (code) {
+                        processQRCode(code.data);
+                    }
+                }
                 
-                // Convert canvas to image
-                capturedImage.src = canvas.toDataURL('image/png');
-                capturedImage.style.display = 'block';
-                statusElement.textContent = 'Photo captured!';
+                requestAnimationFrame(tick);
+            }
+            
+            function processQRCode(data) {
+                stopScanner();
                 
-                // Optional: Stop the camera after capturing
-                // stream.getTracks().forEach(track => track.stop());
-                // videoElement.srcObject = null;
-                // startButton.disabled = false;
-                // captureButton.disabled = true;
+                // Display result
+                resultContent.textContent = data;
+                resultDiv.classList.remove('hidden');
+                
+                // Determine if the result is a URL
+                let isUrl = false;
+                try {
+                    const url = new URL(data);
+                    isUrl = url.protocol === 'http:' || url.protocol === 'https:';
+                } catch (_) {
+                    isUrl = false;
+                }
+                
+                // Show type information
+                let type = 'Plain Text';
+                if (isUrl) {
+                    type = 'URL';
+                    openLinkButton.classList.remove('hidden');
+                } else {
+                    openLinkButton.classList.add('hidden');
+                }
+                resultType.textContent = `Type: ${type}`;
+                
+                // Add to scan history
+                const timestamp = new Date().toLocaleString();
+                scanHistory.unshift({ data, timestamp, type });
+                
+                // Limit history to 20 items
+                if (scanHistory.length > 20) {
+                    scanHistory.pop();
+                }
+                
+                // Save to localStorage
+                localStorage.setItem('qrScanHistory', JSON.stringify(scanHistory));
+                
+                // Update history display
+                updateHistoryDisplay();
+                historyDiv.classList.remove('hidden');
+            }
+            
+            function copyToClipboard() {
+                navigator.clipboard.writeText(resultContent.textContent)
+                    .then(() => {
+                        alert('Copied to clipboard!');
+                    })
+                    .catch(err => {
+                        console.error('Could not copy text: ', err);
+                    });
+            }
+            
+            function openLink() {
+                const url = resultContent.textContent;
+                window.open(url, '_blank');
+            }
+            
+            function updateHistoryDisplay() {
+                historyList.innerHTML = '';
+                scanHistory.forEach((item, index) => {
+                    const li = document.createElement('li');
+                    const displayData = item.data.length > 50 ? item.data.substring(0, 50) + '...' : item.data;
+                    li.innerHTML = `
+                        <div>${displayData} <span class="timestamp">(${item.timestamp})</span></div>
+                        <div style="font-size: 0.9em; color: #666;">Type: ${item.type}</div>
+                    `;
+                    li.addEventListener('click', () => {
+                        resultContent.textContent = item.data;
+                        resultDiv.classList.remove('hidden');
+                        resultType.textContent = `Type: ${item.type}`;
+                        
+                        if (item.type === 'URL') {
+                            openLinkButton.classList.remove('hidden');
+                        } else {
+                            openLinkButton.classList.add('hidden');
+                        }
+                    });
+                    historyList.appendChild(li);
+                });
+            }
+            
+            function clearHistory() {
+                scanHistory.length = 0;
+                localStorage.removeItem('qrScanHistory');
+                historyList.innerHTML = '';
+                historyDiv.classList.add('hidden');
             }
         });
     </script>
