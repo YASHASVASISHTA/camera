@@ -1,366 +1,272 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Scanner</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            text-align: center;
-            background-color: #f8f9fa;
-            color: #333;
-        }
-        
-        h1 {
-            margin-bottom: 30px;
-            color: #2c3e50;
-        }
-        
-        #video-container {
-            position: relative;
-            width: 100%;
-            max-width: 500px;
-            margin: 0 auto 20px;
-            overflow: hidden;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        #qr-video {
-            width: 100%;
-            background-color: #000;
-        }
-        
-        #qr-canvas {
-            display: none;
-        }
-        
-        #scan-region {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: 2px solid #4CAF50;
-            box-sizing: border-box;
-            pointer-events: none;
-        }
-        
-        #result {
-            margin: 20px auto;
-            padding: 15px;
-            background-color: #fff;
-            border-radius: 8px;
-            max-width: 500px;
-            word-break: break-all;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 10px 5px;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }
-        
-        button:hover {
-            background-color: #45a049;
-        }
-        
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        
-        .result-container {
-            display: none;
-            margin-top: 20px;
-        }
-        
-        .result-title {
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        
-        .result-content {
-            background-color: #f1f1f1;
-            padding: 10px;
-            border-radius: 4px;
-        }
-        
-        .hidden {
-            display: none;
-        }
-        
-        .visible {
-            display: block;
-        }
-        
-        a {
-            color: #2980b9;
-            text-decoration: none;
-        }
-        
-        a:hover {
-            text-decoration: underline;
-        }
-        
-        #history {
-            margin-top: 30px;
-            text-align: left;
-            background-color: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        #history-list {
-            list-style: none;
-            padding: 0;
-        }
-        
-        #history-list li {
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        #history-list li:last-child {
-            border-bottom: none;
-        }
-        
-        .timestamp {
-            color: #777;
-            font-size: 0.8em;
-            margin-left: 10px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code Scanner with Time Validation</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.4/html5-qrcode.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    h1 {
+      color: #333;
+    }
+    
+    #reader {
+      width: 100%;
+      max-width: 500px;
+      margin: 0 auto;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    
+    #result {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+      min-height: 50px;
+      text-align: left;
+      word-break: break-all;
+    }
+    
+    .buttons {
+      margin: 20px 0;
+    }
+    
+    button {
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 4px 2px;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    
+    #startButton {
+      background-color: #4CAF50;
+    }
+    
+    #stopButton {
+      background-color: #f44336;
+    }
+    
+    .status {
+      font-style: italic;
+      color: #666;
+    }
+    
+    .success {
+      background-color: #dff0d8;
+      color: #3c763d;
+      border-color: #d6e9c6;
+    }
+    
+    .error {
+      background-color: #f2dede;
+      color: #a94442;
+      border-color: #ebccd1;
+    }
+    
+    #validationResult {
+      margin: 20px 0;
+      padding: 15px;
+      border-radius: 5px;
+      border: 1px solid;
+      display: none;
+    }
+  </style>
 </head>
 <body>
-    <h1>QR Code Scanner</h1>
+  <h1>QR Code Scanner with Time Validation</h1>
+  <p>Scan a QR code containing a timestamp within 1 minute of current time</p>
+  
+  <div class="buttons">
+    <button id="startButton">Start Scanner</button>
+    <button id="stopButton" disabled>Stop Scanner</button>
+  </div>
+  
+  <div id="reader"></div>
+  
+  <div>
+    <h2>Result:</h2>
+    <p class="status" id="status">No QR code detected yet</p>
+    <div id="result"></div>
+  </div>
+  
+  <div id="validationResult"></div>
+  
+  <script>
+    const html5QrCode = new Html5Qrcode("reader");
     
-    <div id="video-container">
-        <video id="qr-video" playsinline></video>
-        <div id="scan-region"></div>
-    </div>
+    // Function to extract date/time from QR code content
+    function extractDateTime(text) {
+      // Try to find date patterns in the text
+      // Common formats: YYYY-MM-DD HH:MM:SS, MM/DD/YYYY HH:MM:SS, etc.
+      
+      // ISO format: YYYY-MM-DDTHH:MM:SS
+      const isoPattern = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+      
+      // Standard date format: YYYY-MM-DD HH:MM:SS
+      const standardPattern = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/;
+      
+      // MM/DD/YYYY HH:MM:SS
+      const usPattern = /\d{1,2}\/\d{1,2}\/\d{4} \d{1,2}:\d{2}:\d{2}/;
+      
+      // DD/MM/YYYY HH:MM:SS
+      const euPattern = /\d{1,2}\/\d{1,2}\/\d{4} \d{1,2}:\d{2}:\d{2}/;
+      
+      // Unix timestamp (seconds since epoch)
+      const unixPattern = /^\d{10}$/;
+      
+      // Unix timestamp milliseconds
+      const unixMsPattern = /^\d{13}$/;
+      
+      // Time only HH:MM:SS
+      const timePattern = /\d{1,2}:\d{2}:\d{2}/;
+      
+      let dateTimeStr = null;
+      let extractedDate = null;
+      
+      if (isoPattern.test(text)) {
+        dateTimeStr = text.match(isoPattern)[0];
+        extractedDate = new Date(dateTimeStr);
+      } else if (standardPattern.test(text)) {
+        dateTimeStr = text.match(standardPattern)[0];
+        extractedDate = new Date(dateTimeStr);
+      } else if (usPattern.test(text)) {
+        dateTimeStr = text.match(usPattern)[0];
+        const parts = dateTimeStr.split(' ');
+        const dateParts = parts[0].split('/');
+        extractedDate = new Date(`${dateParts[2]}-${dateParts[0]}-${dateParts[1]} ${parts[1]}`);
+      } else if (euPattern.test(text)) {
+        dateTimeStr = text.match(euPattern)[0];
+        const parts = dateTimeStr.split(' ');
+        const dateParts = parts[0].split('/');
+        extractedDate = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]} ${parts[1]}`);
+      } else if (unixPattern.test(text)) {
+        const timestamp = parseInt(text) * 1000; // Convert to milliseconds
+        extractedDate = new Date(timestamp);
+      } else if (unixMsPattern.test(text)) {
+        const timestamp = parseInt(text);
+        extractedDate = new Date(timestamp);
+      } else if (timePattern.test(text)) {
+        // For time only, use today's date
+        const timeStr = text.match(timePattern)[0];
+        const today = new Date();
+        const [hours, minutes, seconds] = timeStr.split(':').map(Number);
+        today.setHours(hours, minutes, seconds);
+        extractedDate = today;
+      } else {
+        // Try to parse the entire text as a date
+        const possibleDate = new Date(text);
+        if (!isNaN(possibleDate.getTime())) {
+          extractedDate = possibleDate;
+        }
+      }
+      
+      return extractedDate;
+    }
     
-    <canvas id="qr-canvas"></canvas>
+    // Function to validate if the timestamp is within 1 minute of current time
+    function validateTimestamp(scannedDate) {
+      if (!scannedDate) return false;
+      
+      const currentTime = new Date();
+      const timeDifference = Math.abs(currentTime - scannedDate); // Difference in milliseconds
+      const oneMinuteInMs = 60 * 1000; // 1 minute in milliseconds
+      
+      return timeDifference <= oneMinuteInMs;
+    }
     
-    <div>
-        <button id="start-button">Start Scanner</button>
-        <button id="stop-button" disabled>Stop Scanner</button>
-    </div>
+    const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+      document.getElementById('result').textContent = decodedText;
+      
+      // Extract date/time from QR code
+      const extractedDate = extractDateTime(decodedText);
+      const validationResult = document.getElementById('validationResult');
+      validationResult.style.display = 'block';
+      
+      if (extractedDate) {
+        const isValid = validateTimestamp(extractedDate);
+        
+        if (isValid) {
+          validationResult.className = 'success';
+          validationResult.innerHTML = `
+            <strong>SUCCESS!</strong><br>
+            Detected time is within 1 minute of current time.<br>
+            QR Code time: ${extractedDate.toLocaleString()}<br>
+            Current time: ${new Date().toLocaleString()}
+          `;
+        } else {
+          validationResult.className = 'error';
+          validationResult.innerHTML = `
+            <strong>ERROR!</strong><br>
+            Time difference is more than 1 minute.<br>
+            QR Code time: ${extractedDate.toLocaleString()}<br>
+            Current time: ${new Date().toLocaleString()}<br>
+            Please scan a QR code with a current timestamp.
+          `;
+        }
+      } else {
+        validationResult.className = 'error';
+        validationResult.innerHTML = `
+          <strong>ERROR!</strong><br>
+          No valid timestamp found in QR code.<br>
+          Please scan a QR code containing a date/time.
+        `;
+      }
+      
+      document.getElementById('status').textContent = "QR code processed!";
+    };
     
-    <div id="result" class="hidden">
-        <div class="result-title">Scan Result:</div>
-        <div id="result-content" class="result-content"></div>
-        <div id="result-type" style="margin-top: 10px; font-size: 0.9em; color: #666;"></div>
-        <div style="margin-top: 15px;">
-            <button id="copy-button">Copy to Clipboard</button>
-            <button id="open-link-button" class="hidden">Open Link</button>
-        </div>
-    </div>
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
     
-    <div id="history" class="hidden">
-        <h2>Scan History</h2>
-        <ul id="history-list"></ul>
-        <button id="clear-history">Clear History</button>
-    </div>
+    // Buttons
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const video = document.getElementById('qr-video');
-            const canvas = document.getElementById('qr-canvas');
-            const ctx = canvas.getContext('2d');
-            const resultDiv = document.getElementById('result');
-            const resultContent = document.getElementById('result-content');
-            const resultType = document.getElementById('result-type');
-            const startButton = document.getElementById('start-button');
-            const stopButton = document.getElementById('stop-button');
-            const copyButton = document.getElementById('copy-button');
-            const openLinkButton = document.getElementById('open-link-button');
-            const historyDiv = document.getElementById('history');
-            const historyList = document.getElementById('history-list');
-            const clearHistoryButton = document.getElementById('clear-history');
-            
-            let scanning = false;
-            let stream = null;
-            
-            // Load scan history from localStorage
-            const scanHistory = JSON.parse(localStorage.getItem('qrScanHistory') || '[]');
-            if (scanHistory.length > 0) {
-                updateHistoryDisplay();
-                historyDiv.classList.remove('hidden');
-            }
-            
-            startButton.addEventListener('click', startScanner);
-            stopButton.addEventListener('click', stopScanner);
-            copyButton.addEventListener('click', copyToClipboard);
-            openLinkButton.addEventListener('click', openLink);
-            clearHistoryButton.addEventListener('click', clearHistory);
-            
-            function startScanner() {
-                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                    navigator.mediaDevices.getUserMedia({ 
-                        video: { 
-                            facingMode: 'environment',
-                            width: { ideal: 1280 },
-                            height: { ideal: 720 } 
-                        } 
-                    })
-                    .then(function(mediaStream) {
-                        stream = mediaStream;
-                        video.srcObject = mediaStream;
-                        video.setAttribute('playsinline', true);
-                        video.play();
-                        requestAnimationFrame(tick);
-                        scanning = true;
-                        startButton.disabled = true;
-                        stopButton.disabled = false;
-                    })
-                    .catch(function(error) {
-                        console.error('Error accessing camera:', error);
-                        alert('Could not access the camera. Please make sure you have granted camera permissions.');
-                    });
-                } else {
-                    alert('Sorry, your browser does not support camera access.');
-                }
-            }
-            
-            function stopScanner() {
-                if (stream) {
-                    stream.getTracks().forEach(track => {
-                        track.stop();
-                    });
-                    video.srcObject = null;
-                    scanning = false;
-                    startButton.disabled = false;
-                    stopButton.disabled = true;
-                }
-            }
-            
-            function tick() {
-                if (!scanning) return;
-                
-                if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                    canvas.height = video.videoHeight;
-                    canvas.width = video.videoWidth;
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    
-                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                        inversionAttempts: "dontInvert",
-                    });
-                    
-                    if (code) {
-                        processQRCode(code.data);
-                    }
-                }
-                
-                requestAnimationFrame(tick);
-            }
-            
-            function processQRCode(data) {
-                stopScanner();
-                
-                // Display result
-                resultContent.textContent = data;
-                resultDiv.classList.remove('hidden');
-                
-                // Determine if the result is a URL
-                let isUrl = false;
-                try {
-                    const url = new URL(data);
-                    isUrl = url.protocol === 'http:' || url.protocol === 'https:';
-                } catch (_) {
-                    isUrl = false;
-                }
-                
-                // Show type information
-                let type = 'Plain Text';
-                if (isUrl) {
-                    type = 'URL';
-                    openLinkButton.classList.remove('hidden');
-                } else {
-                    openLinkButton.classList.add('hidden');
-                }
-                resultType.textContent = `Type: ${type}`;
-                
-                // Add to scan history
-                const timestamp = new Date().toLocaleString();
-                scanHistory.unshift({ data, timestamp, type });
-                
-                // Limit history to 20 items
-                if (scanHistory.length > 20) {
-                    scanHistory.pop();
-                }
-                
-                // Save to localStorage
-                localStorage.setItem('qrScanHistory', JSON.stringify(scanHistory));
-                
-                // Update history display
-                updateHistoryDisplay();
-                historyDiv.classList.remove('hidden');
-            }
-            
-            function copyToClipboard() {
-                navigator.clipboard.writeText(resultContent.textContent)
-                    .then(() => {
-                        alert('Copied to clipboard!');
-                    })
-                    .catch(err => {
-                        console.error('Could not copy text: ', err);
-                    });
-            }
-            
-            function openLink() {
-                const url = resultContent.textContent;
-                window.open(url, '_blank');
-            }
-            
-            function updateHistoryDisplay() {
-                historyList.innerHTML = '';
-                scanHistory.forEach((item, index) => {
-                    const li = document.createElement('li');
-                    const displayData = item.data.length > 50 ? item.data.substring(0, 50) + '...' : item.data;
-                    li.innerHTML = `
-                        <div>${displayData} <span class="timestamp">(${item.timestamp})</span></div>
-                        <div style="font-size: 0.9em; color: #666;">Type: ${item.type}</div>
-                    `;
-                    li.addEventListener('click', () => {
-                        resultContent.textContent = item.data;
-                        resultDiv.classList.remove('hidden');
-                        resultType.textContent = `Type: ${item.type}`;
-                        
-                        if (item.type === 'URL') {
-                            openLinkButton.classList.remove('hidden');
-                        } else {
-                            openLinkButton.classList.add('hidden');
-                        }
-                    });
-                    historyList.appendChild(li);
-                });
-            }
-            
-            function clearHistory() {
-                scanHistory.length = 0;
-                localStorage.removeItem('qrScanHistory');
-                historyList.innerHTML = '';
-                historyDiv.classList.add('hidden');
-            }
-        });
-    </script>
+    startButton.addEventListener('click', () => {
+      html5QrCode.start(
+        { facingMode: "environment" }, 
+        config,
+        qrCodeSuccessCallback
+      ).then(() => {
+        startButton.disabled = true;
+        stopButton.disabled = false;
+        document.getElementById('status').textContent = "Scanner started. Point camera at a QR code.";
+        document.getElementById('validationResult').style.display = 'none';
+      }).catch((err) => {
+        document.getElementById('status').textContent = `Error starting scanner: ${err}`;
+      });
+    });
+    
+    stopButton.addEventListener('click', () => {
+      html5QrCode.stop().then(() => {
+        startButton.disabled = false;
+        stopButton.disabled = true;
+        document.getElementById('status').textContent = "Scanner stopped.";
+      }).catch((err) => {
+        document.getElementById('status').textContent = `Error stopping scanner: ${err}`;
+      });
+    });
+  </script>
 </body>
 </html>
