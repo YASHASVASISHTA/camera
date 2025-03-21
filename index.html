@@ -37,7 +37,7 @@
       word-break: break-all;
     }
     
-    .buttons {
+    .camera-toggle {
       margin: 20px 0;
     }
     
@@ -60,12 +60,8 @@
       cursor: not-allowed;
     }
     
-    #startButton {
-      background-color: #4CAF50;
-    }
-    
-    #stopButton {
-      background-color: #f44336;
+    #toggleCameraButton {
+      background-color: #2196F3;
     }
     
     .status {
@@ -123,20 +119,19 @@
   </style>
 </head>
 <body>
-  <h1>QR Code Scanner </h1>
+  <h1>QR Code Scanner</h1>
   <p>Scan a QR code for checkin at gym</p>
   
   <div id="scannerContainer">
-    <div class="buttons">
-      <button id="startButton">Start Scanner</button>
-      <button id="stopButton" disabled>Stop Scanner</button>
+    <div class="camera-toggle">
+      <button id="toggleCameraButton">Switch Camera (Front/Back)</button>
     </div>
     
     <div id="reader"></div>
     
     <div>
       <h2>Result:</h2>
-      <p class="status" id="status">No QR code detected yet</p>
+      <p class="status" id="status">Camera active. Point at a QR code.</p>
       <div id="result"></div>
     </div>
     
@@ -147,13 +142,15 @@
   <div id="popup">
     <div class="popup-icon">✓</div>
     <div>SUCCESS!</div>
-    <div>Hey YASHAS ,welcome to the gym</div>
+    <div>Hey YASHAS, welcome to the gym</div>
   </div>
   
   <script>
     const html5QrCode = new Html5Qrcode("reader");
     const popup = document.getElementById('popup');
     const scannerContainer = document.getElementById('scannerContainer');
+    const toggleCameraButton = document.getElementById('toggleCameraButton');
+    let currentCamera = 'environment'; // Start with back camera
     
     // Function to extract date/time from QR code content
     function extractDateTime(text) {
@@ -246,10 +243,8 @@
         popup.style.display = 'none';
         scannerContainer.style.display = 'block';
         
-        // If scanning was stopped while popup was showing, don't auto-restart
-        if (!startButton.disabled) {
-          startScanner();
-        }
+        // Restart the scanner - it always resumes after a success
+        startScanner();
       }, 5000);
     }
     
@@ -275,8 +270,6 @@
           
           // Stop the scanner temporarily while showing the popup
           html5QrCode.stop().then(() => {
-            startButton.disabled = false;
-            stopButton.disabled = true;
             // Show success popup for 5 seconds
             showSuccessPopup();
           });
@@ -305,36 +298,33 @@
     
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
     
-    // Buttons
-    const startButton = document.getElementById('startButton');
-    const stopButton = document.getElementById('stopButton');
-    
     function startScanner() {
       html5QrCode.start(
-        { facingMode: "environment" }, 
+        { facingMode: currentCamera }, 
         config,
         qrCodeSuccessCallback
       ).then(() => {
-        startButton.disabled = true;
-        stopButton.disabled = false;
-        document.getElementById('status').textContent = "Scanner started. Point camera at a QR code.";
+        document.getElementById('status').textContent = `Scanner active (${currentCamera === 'user' ? 'Front' : 'Back'} camera). Point at a QR code.`;
         document.getElementById('validationResult').style.display = 'none';
       }).catch((err) => {
         document.getElementById('status').textContent = `Error starting scanner: ${err}`;
       });
     }
     
-    startButton.addEventListener('click', startScanner);
-    
-    stopButton.addEventListener('click', () => {
+    toggleCameraButton.addEventListener('click', () => {
+      // Stop current scanner
       html5QrCode.stop().then(() => {
-        startButton.disabled = false;
-        stopButton.disabled = true;
-        document.getElementById('status').textContent = "Scanner stopped.";
+        // Toggle camera
+        currentCamera = currentCamera === 'environment' ? 'user' : 'environment';
+        // Restart with new camera
+        startScanner();
       }).catch((err) => {
-        document.getElementById('status').textContent = `Error stopping scanner: ${err}`;
+        document.getElementById('status').textContent = `Error switching camera: ${err}`;
       });
     });
+    
+    // Start scanner automatically when page loads
+    window.addEventListener('load', startScanner);
   </script>
 </body>
 </html>
